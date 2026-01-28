@@ -27,6 +27,15 @@ WindowDefinition(57, 15, 13, 16, 14) 	// Used for Resistances window on Equipmen
 WindowDefinition(58, 1, 19, 30, 8) 	// Out-of-battle text (Mother)
 WindowDefinition(59, 7, 1, 24, 18)	// Debug menu
 WindowDefinition(60, 2, 12, 28, 4)	// Warning for illegal name input
+WindowDefinition(61, 1, 1, 30, 26) // "Full-screen" window
+WindowDefinition(62, 1, 1, 19, 8) // Mod Menu window
+WindowDefinition(63, 4, 1, 15, 16) // Mod Menu 2 window
+WindowDefinition(64, 7, 3, 14, 9) // Mod Menu Confirm window
+WindowDefinition(65, 7, 1, 22, 4) // Mod Menu Notification window
+WindowDefinition(66, 15, 15, 16, 13) // Mod Menu Debug window
+WindowDefinition(67, 7, 1, 24, 16) // Mod Menu Key Items window
+WindowDefinition(68, 7, 17, 24, 10) // Mod Menu Item Description window
+WindowDefinition(69, 0, 0, 32, 4) // Top LetterBox window
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ////////// PUT YOUR WINDOWS ABOVE
@@ -309,7 +318,7 @@ GetExistenceAtA: {
 _asmptr(0xC105C9, NewWindowTable)
 NewWindowTable:
 	// 	      #,   X,	   Y, 	    W,	    H
-    WindowDefinition( 0, 1, 1, 13, 6) // 0, 01,01,0D,08
+    WindowDefinition( 0, 1, 1, 15, 8) // 0, 01,01,0D(13),08
     WindowDefinition( 1, 12, 1, 19, 8) // Out-of-battle text
     WindowDefinition( 2, 7, 1, 24, 16) // Main inventory window
     WindowDefinition( 3, 1, 1, 6, 10) // Inventory menu
@@ -319,12 +328,12 @@ NewWindowTable:
     WindowDefinition( 7, 18, 1, 13, 12) // Item list for equip menu (7, 12,01,0D,10->0C)
     WindowDefinition( 8, 1, 1, 30, 18) // Status menu
     WindowDefinition( 9, 12, 1, 19, 18) // Used by status screen?
-    WindowDefinition(10, 1, 7, 8, 4) // Carried money window
+    WindowDefinition(10, 1, 9, 8, 4) // Cash window (1,10,8,4)
     WindowDefinition(11, 1, 15, 11, 4) // Used by status screen?
     WindowDefinition(12, 12, 1, 19, 16) //
     WindowDefinition(13, 7, 1, 24, 16) //
     WindowDefinition(14, 4, 1, 24, 6) // In-battle text
-    WindowDefinition(15, 1, 1, 21, 6) // Normal battle menu (Fix for Teddy as last alive member: 21 -> 23)
+    WindowDefinition(15, 1, 1, 21, 6) // Normal battle menu
     WindowDefinition(16, 4, 1, 8, 8) //
     WindowDefinition(17, 12, 1, 12, 4) //
     WindowDefinition(18, 1, 1, 14, 6) // Jeff's Battle menu
