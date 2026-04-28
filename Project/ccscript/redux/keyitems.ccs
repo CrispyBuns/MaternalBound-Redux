@@ -1,0 +1,412 @@
+//------------------------------------
+// 	Key Items menu
+//------------------------------------
+// A hijack of the original "Check" menu option to instead work as a Key items menu
+// This frees up space in the main inventory for the player
+
+//------------------------------------
+// 	File imports
+//------------------------------------
+import "../definitions/flags.ccs"
+import "../definitions/items.ccs"
+import "../essential/asm65816.ccs"
+import "../essential/cc_asmcall.ccs"
+import "../essential/ccexpand.ccs"
+import "../essential/commands.ccs"
+import "../essential/stdext.ccs"
+import "../redux/window_titles.ccs"
+
+//------------------------------------
+// 	Definitions
+//------------------------------------
+
+// Define routines
+define UNFREEZE_OBJECTS		= 0xC09451
+define PLAY_SOUND		= 0xC0ABE0
+
+define CLOSE_HPPP_WINDOWS	= 0xC10000
+define SET_WINDOW_FOCUS		= 0xC1007E
+define CLOSE_FOCUS_WINDOW	= 0xC10084
+define CLOSEALL_WINDOWS		= 0xC1008E
+define CREATE_WINDOW		= 0xC104EE
+define HIDE_HPPP_WINDOWS	= 0xC10A1D
+define PRINT_STRING		= 0xC10EFC
+define WINDOW_TICK		= 0xC12DD5
+define MAIN_PAUSE_MENU		= 0xC134CD
+define ENTITY_FADE_ENTITY	= 0xC1B4A8
+define CLOSE_INVENTORY_WHICH_WINDOWS	= 0xC135DE
+define CLOSE_INVENTORY_MENU	= 0xC13648
+define DISPLAY_TEXT		= 0xC186B1
+define OPEN_WHICH_WINDOW	= 0xC193E7
+define CLOSE_WHICH_WINDOW	= 0xC19437
+define CREATE_WINDOW_REDIRECT	= 0xC1DD47
+
+define SET_WINDOW_TITLE		= 0xC2032B
+define GET_EVENT_FLAG		= 0xC21628
+
+define CLEAR_INSTANT_PRINTING	= 0xC3E4CA
+define SET_INSTANT_PRINTING	= 0xC3E4D4
+define CLOSE_WINDOW		= 0xC3E521
+
+// Define window constants
+define MAINMENU_WINDOW	= 0
+define DIALOGUE_WINDOW	= 1
+define INVENTORY_WINDOW	= 2
+define CASH_WINDOW	= 10
+define WHICH_WINDOW	= 40
+define USE_HELP_WINDOW	= 61
+
+//------------------------------------
+// 	Check code hijack
+//------------------------------------
+// Hijack the 'Check' routine
+ROM[0xC13BCF] = {
+	MText	(Key_Items_Prep)
+	// 0xC13BDD
+	LDA_i	(FLG_TEMP_USEITEM)
+	JSL	(GET_EVENT_FLAG)
+	CMP_i	(0x0000)
+	BNE	(0x07)	// _exit_on_item_use
+	JSL	(CC_Close_Custom_Windows)	// Close our custom windows
+	JMP	(MAIN_PAUSE_MENU)	// Return to the Main menu
+
+_exit_on_item_use:	// 0xC13BF0
+	JMP	(0xC13C16)
+	// Limit for this section is up to 0xC13C01
+}
+
+CC_Close_Custom_Windows: {
+	// Close all windows properly through ASM
+	LDA_i	(DIALOGUE_WINDOW)	// Load standard dialogue window
+	JSL	(CLOSE_WINDOW)		// Close window routine
+
+	LDA_i	(USE_HELP_WINDOW)	// Load inventory menu (Use/Help) window
+	JSL	(CLOSE_WINDOW)		// Close window routine
+
+	LDA_i	(WHICH_WINDOW)		// Load "Which?" text window
+	JSL	(CLOSE_WINDOW)		// Close window routine
+
+	LDA_i	(INVENTORY_WINDOW)	// Load inventory window
+	JSL	(CLOSE_WINDOW)		// Close window routine
+
+	LDA_i	(SND_SHOOT)		// 0x1B, 27, #SFX::MENU_OPEN_CLOSE
+	JSL	(PLAY_SOUND)
+
+	RTL
+}
+
+Key_Items_Prep: {
+	call(open_which_window)
+	open_hp
+	show_wallet
+	goto(KeyItems)
+}
+
+//------------------------------------
+// 	Item counters
+//------------------------------------
+SetCount1: { counter(1) ctoarg eob }
+SetCount2: { counter(2) ctoarg eob }
+SetCount3: { counter(3) ctoarg eob }
+SetCount4: { counter(4) ctoarg eob }
+SetCount5: { counter(5) ctoarg eob }
+SetCount6: { counter(6) ctoarg eob }
+SetCount7: { counter(7) ctoarg eob }
+SetCount8: { counter(8) ctoarg eob }
+SetCount9: { counter(9) ctoarg eob }
+SetCount10: { counter(10) ctoarg eob }
+SetCount11: { counter(11) ctoarg eob }
+SetCount12: { counter(12) ctoarg eob }
+SetCount13: { counter(13) ctoarg eob }
+SetCount14: { counter(14) ctoarg eob }
+SetCount15: { counter(15) ctoarg eob }
+SetCount16: { counter(16) ctoarg eob }
+SetCount17: { counter(17) ctoarg eob }
+SetCount18: { counter(18) ctoarg eob }
+SetCount19: { counter(19) ctoarg eob }
+SetCount20: { counter(20) ctoarg eob }
+SetCount21: { counter(21) ctoarg eob }
+SetCount22: { counter(22) ctoarg eob }
+SetCount23: { counter(23) ctoarg eob }
+SetCount24: { counter(24) ctoarg eob }
+SetCount25: { counter(25) ctoarg eob }
+SetCount26: { counter(26) ctoarg eob }
+SetCount27: { counter(27) ctoarg eob }
+SetCount28: { counter(28) ctoarg eob }
+
+//------------------------------------
+//   Main Key items ccscript code
+//------------------------------------
+KeyItems:
+	unset(FLG_TEMP_USEITEM)
+
+	store_registers_shared
+	back_up_text_rendering_state
+	window_open(INVENTORY_WINDOW)
+	title(0, KeyItems_Title)
+	pause(1)
+
+	load_registers_shared
+	counter_zero
+	ctoarg
+
+	// Item flag checks
+	// Check if the player is not in Jeff nor Poo's sections
+	// (Main gameplay with all characters)
+	if not flag FLG_POO_SOLO and not flag FLG_JEFF_SOLO {
+
+		load_str_callonhover("ATM card", SetCount1)
+		if flag FLG_ONET_2FPICKEY_APPEAR and not flag FLG_WIN_OSCAR { // Buzz Buzz died and Defeated Nightmare
+		// Flag FLG_ONET_2FPICKEY_APPEAR is set after Buzz buzz is killed, but never unset
+			load_str_callonhover("Sound Stone", SetCount2) }
+		if flag FLG_ITEM_MAP {
+			load_str_callonhover("Town map", SetCount3) }
+		if flag FLG_KEY_TABIGOYA and not flag FLG_OPEN_TABIGOYA	and not flag FLG_INFO_XYZ { // Shack Key used
+		// The Shack key flag gets unset again when starting the trip for the Meteorite piece
+			load_str_callonhover("Key to the shack", SetCount4) }
+		if flag FLG_ITEM_CYCLE {
+			load_str_callonhover("Bicycle", SetCount5) }
+		if flag FLG_ITEM_PHONE {
+			load_str_callonhover("Receiver phone", SetCount6) }
+		if flag FLG_ITEM_TACO_ERASER {
+			load_str_callonhover("Pencil eraser", SetCount7) }
+		if flag FLG_ITEM_KOKESHI {
+			load_str_callonhover("Eraser eraser", SetCount8) }
+		if flag FLG_WIN_CARPAINTER and not flag FLG_POLA_GRFD { // Paula rescued
+		// Check used FLG_HAPPY_CARPAINTER_ITEMFULL originally, but this was buggy when talking back to Carpainter again
+			load_str_callonhover("Key to the cabin", SetCount9) }
+		if flag FLG_TWSN_ITEM_TONCHIKI and not flag FLG_TWSN_TONZURA_FREE {
+			load_str_callonhover("Suitcase of bills", SetCount10) }
+		if flag FLG_ITEM_TICKET { //and not flag FLG_TWSN_FIELD_TONZ_DISAPPEAR {	// Shouldn't be taken
+			load_str_callonhover("Backstage pass", SetCount11) }
+		if flag FLG_ITEM_HOIHOI and not flag FLG_PUT_ZOMBI_HOIHOI and not flag FLG_THRK_ZOMBI_CAPTURED and not flag FLG_WIN_GEPPU {
+			load_str_callonhover("Zombie paper", SetCount12) }
+		if flag FLG_ITEM_SHOW_TICKET and not flag FLG_SHOW_TICKET_TAKEN {
+			load_str_callonhover("Show ticket", SetCount13) }
+		if flag FLG_DSRT_ITEM_DIA and not flag FLG_FOUR_TONZURA_FREE {
+			load_str_callonhover("Diamond", SetCount14) }
+		if flag FLG_ITEM_TOFU and not flag FLG_FOUR_MAID_THANKS {	// Tofu machine
+			load_str_callonhover("Tofu machine", SetCount15) }
+		if flag FLG_PU and not flag FLG_SUMS_OMAR_B_APPEAR {
+			load_str_callonhover("Tiny ruby", SetCount16) }
+		if flag FLG_ITEM_BANANA and not flag FLG_FOUR_KOMORITA_APPEAR {	// Open Sewer
+			load_str_callonhover("Signed banana", SetCount17) }
+		if flag FLG_SUMS_HIEROGLYPH and not flag FLG_SPHINX_OK {	// Pyramid open
+			load_str_callonhover("Hieroglyph copy", SetCount18) }
+		if flag FLG_ITEM_CARROT_KEY and not flag FLG_RAMA_RABBIT_DISAPPEAR {
+			load_str_callonhover("Rabbits' carrot", SetCount19) }
+		if flag FLG_ITEM_KEY_PUPUKA and not flag FLG_SKRB_DUNGEONMAN_OPEN {
+			load_str_callonhover("Key to the tower", SetCount20) }
+		if flag FLG_ITEM_TAKANOME and not flag FLG_MAKYO_USE_TAKANOME {
+			load_str_callonhover("Hawk eye", SetCount21) }
+		if flag FLG_ITEM_MUKUCHI and not flag FLG_GUMI_USEBOOK or flag FLG_GUMI_OLDMAN_END and not flag FLG_ONET_LUCY_CHU {
+			load_str_callonhover("Shyness book", SetCount22) }
+		if flag FLG_GUMI_OLDMAN_ITEM and not flag FLG_DKFD_DOOR_DISAPPEAR or not flag FLG_DKFD_GUMI_BOSS {
+		// Open Underworld rock or Tenda boss takes the Tendakraut
+			load_str_callonhover("Tendakraut", SetCount23) }
+		if flag FLG_ITEM_XYZ and not flag FLG_XYZ_OK {
+			load_str_callonhover("Meteorite piece", SetCount24) }
+	}
+
+	if flag FLG_JEFF_SOLO {
+		if flag FLG_ITEM_KEY_LOCKER and not flag FLG_ITEM_GAUS {
+			load_str_callonhover("Key to the locker", SetCount25) }
+		if flag FLG_ITEM_GAUS {
+			load_str_callonhover("Bad key machine", SetCount26) }
+		if flag FLG_ITEM_BUBBLE_GUM and not flag FLG_WINS_ROPE_SWITCH {	// and flag FLG_BALLOONMONKEY
+			load_str_callonhover("Pak of bubble gum", SetCount27) }
+	}
+
+	if flag FLG_POO_SOLO { load_str_callonhover("Tiny ruby", SetCount28) }
+
+_Help_Backout:
+	print_strings_vertical(2)
+
+_UseHelp_Window_Backout:
+	if not do_menu_nounload {
+		// Exit
+		// Closing the windows is handled through ASM after returning from the Key items menu
+		eob
+	}
+
+	ctoarg
+	swap
+
+	switch_goto(27)
+		switch_entry(atm)
+		switch_entry(soundstone)
+		switch_entry(townmap)
+		switch_entry(shackkey)
+		switch_entry(bike)
+		switch_entry(phone)
+		switch_entry(pencileraser)
+		switch_entry(erasereraser)
+		switch_entry(cabinkey)
+		switch_entry(wadofbills)
+		switch_entry(backstagepass)
+		switch_entry(zombiepaper)
+		switch_entry(showticket)
+		switch_entry(diamond)
+		switch_entry(tofumachine)
+		switch_entry(tinyruby)
+		switch_entry(signedbanana)
+		switch_entry(hieroglyph)
+		switch_entry(carrotkey)
+		switch_entry(towerkey)
+		switch_entry(hawkeye)
+		switch_entry(shynessbook)
+		switch_entry(tendakraut)
+		switch_entry(meteoritepiece)
+		switch_entry(lockerkey)
+		switch_entry(badkeymachine)
+		switch_entry(bubblegum)
+		switch_entry(tinyruby2)
+_Exit_KeyItems_Menu:
+	eob
+
+//------------------------------------
+// 	  Item scripts
+//------------------------------------
+	atm:		use_help_submenu(ATM_CARD, item_descriptions.l_0xc5566b) eob
+	soundstone:	use_help_submenu(SOUND_STONE, item_descriptions.l_0xc55ad5) eob
+	townmap:	use_help_submenu(TOWN_MAP, item_descriptions.l_0xc55cce) eob
+	shackkey: 	use_help_submenu(SHACK_KEY, item_descriptions.l_0xc554f6) eob
+	bike:		use_help_submenu(BICYCLE, item_descriptions.l_0xc55627) eob
+	phone:		use_help_submenu(RECEIVER_PHONE, item_descriptions.l_0xc5570b) eob
+	pencileraser:	use_help_submenu(PENCIL_ERASER, item_descriptions.l_0xc55794) eob
+	erasereraser:	use_help_submenu(ERASER_ERASER, item_descriptions.l_0xc55e28) eob
+	cabinkey:	use_help_submenu(CABIN_KEY, item_descriptions.l_0xc5551d) eob
+	wadofbills:	use_help_submenu(WAD_BILLS, item_descriptions.l_0xc556e3) eob
+	backstagepass:	use_help_submenu(BACKSTAGE_PASS, item_descriptions.l_0xc548b2) eob
+	zombiepaper:	use_help_submenu(ZOMBIE_PAPER, item_descriptions.l_0xc555b8) eob
+	showticket:	use_help_submenu(SHOW_TICKET, item_descriptions.l_0xc5569c) eob
+	diamond:	use_help_submenu(DIAMOND, item_descriptions.l_0xc55740) eob
+	tofumachine:	use_help_submenu(TOFU_MACHINE, item_descriptions.l_0xc54c6d) eob
+	tinyruby:	use_help_submenu(TINY_RUBY, item_descriptions.l_0xc55de0) eob
+	signedbanana:	use_help_submenu(SIGNED_BANANA, item_descriptions.l_0xc5576a) eob
+	hieroglyph:	use_help_submenu(HIEROGLYPH, item_descriptions.l_0xc557e7) eob
+	carrotkey:	use_help_submenu(CARROT_KEY, item_descriptions.l_0xc5689f) eob
+	towerkey:	use_help_submenu(TOWER_KEY, item_descriptions.l_0xc55943) eob
+	hawkeye:	use_help_submenu(HAWK_EYE, item_descriptions.l_0xc55602) eob
+	shynessbook:	use_help_submenu(SHYNESS_BOOK, item_descriptions.l_0xc55409) eob
+	tendakraut:	use_help_submenu(TENDAKRAUT, item_descriptions.l_0xc55e77) eob
+	meteoritepiece:	use_help_submenu(METEORITE_PIECE, item_descriptions.l_0xc55957) eob
+	lockerkey:	use_help_submenu(LOCKER_KEY, item_descriptions.l_0xc55d82) eob
+	badkeymachine:	use_help_submenu(BAD_KEY_MACHINE, item_descriptions.l_0xc55546) eob
+	bubblegum:	use_help_submenu(BUBBLE_GUM, item_descriptions.l_0xc544dd) eob
+	tinyruby2:	use_help_submenu(TINY_RUBY, item_descriptions.l_0xc55de0) eob
+
+// Opens up the small window with the "Which?" text
+open_which_window: {
+	cc_asmcall(SET_INSTANT_PRINTING, RET_NONE)
+	window_open(WHICH_WINDOW)
+	"Which?"
+	cc_asmcall(CLEAR_INSTANT_PRINTING, RET_NONE)
+	eob
+}
+
+//------------------------------------
+//	Custom commands
+//------------------------------------
+
+// Define custom USE ITEM command
+command use_item(itemID) {
+	arg(itemID)
+	cc_asmcall(CCUseItem, RET_NONE)
+	eob
+}
+
+// Use/Help submenu command
+command use_help_submenu( itemID, help_text ) {
+	window_close(WHICH_WINDOW)
+	window_open(USE_HELP_WINDOW)
+	load_str("Use")
+	load_str("Help!")
+	print_strings_vertical(1)
+	do_menu
+	switch_goto(2)
+		switch_entry(_use)
+		switch_entry(_help)
+	window_close(USE_HELP_WINDOW)
+	call(open_which_window)
+	window_switch(INVENTORY_WINDOW)
+	goto(_UseHelp_Window_Backout)
+_use:
+	window_closetop
+	set(FLG_TEMP_USEITEM)
+	window_open(DIALOGUE_WINDOW)
+	use_item(itemID)
+	window_closeall
+	eob
+_help:
+	window_switch(INVENTORY_WINDOW)
+	window_clear
+	window_open(DIALOGUE_WINDOW)
+	call(help_text)
+	window_close(DIALOGUE_WINDOW)
+	window_close(USE_HELP_WINDOW)
+	call(open_which_window)
+	window_switch(INVENTORY_WINDOW)
+	goto(_Help_Backout)
+}
+
+// Set the flag for the corresponding Key Item
+command give_menu_key_item(itemID) {
+	counter(itemID)
+	call(keyitemcounter)
+
+	sound(SND_BOXTAKE)	// 116
+	pause(60)
+	window_closeall
+	sound(SND_SPECIALITEM)	// 102
+	pause(100)
+	window_open(1)
+
+	get_char_at_pos(1) swap
+	"@({name(0)} added the" linebreak
+	"  {itemname(itemID)}" linebreak
+	"  to the Key items.)" //eob
+}
+
+keyitemcounter:
+	/*if counter_is(ATM_CARD) { toggle_with_sound(FLG_NESS_KI) }		// ATM card
+	if counter_is(SOUND_STONE) { toggle_with_sound(FLG_ONET_2FPICKEY_APPEAR) }	// Sound stone
+	if counter_is(TOWN_MAP) { toggle_with_sound(FLG_ITEM_MAP) }		// Town map
+	if counter_is(SHACK_KEY) { toggle_with_sound(FLG_KEY_TABIGOYA) }	// Shack key
+	if counter_is(BICYCLE) { toggle_with_sound(FLG_ITEM_CYCLE) }		// Bicycle
+	if counter_is(RECEIVER_PHONE) { toggle_with_sound(FLG_ITEM_PHONE) }	// Receiver phone
+	if counter_is(PENCIL_ERASER) { toggle_with_sound(FLG_ITEM_TACO_ERASER) }	// Pencil eraser
+	if counter_is(ERASER_ERASER) { toggle_with_sound(FLG_ITEM_KOKESHI) }	// Eraser eraser
+	if counter_is(CABIN_KEY) { toggle_with_sound(FLG_WIN_CARPAINTER) }	// Cabin key
+	if counter_is(WAD_BILLS) { toggle_with_sound(FLG_TWSN_ITEM_TONCHIKI) }	// Suitcase bills
+	if counter_is(BACKSTAGE_PASS) { toggle_with_sound(FLG_ITEM_BACKSTAGE_PASS) }	// Backstage pass
+	if counter_is(ZOMBIE_PAPER) { toggle_with_sound(FLG_ITEM_HOIHOI) }	// Zombie paper
+	*/
+	if counter_is(SHOW_TICKET) { toggle_with_sound(FLG_ITEM_SHOW_TICKET) }	// Show ticket
+	/*
+	if counter_is(DIAMOND) { toggle_with_sound(FLG_DSRT_ITEM_DIA) }		// Diamond
+	if counter_is(TOFU_MACHINE) { toggle_with_sound(FLG_ITEM_YOGURT_MACHINE) }	// Tofu machine
+	if counter_is(TINY_RUBY) { toggle_with_sound(FLG_ITEM_TINY_RUBY) }	// Tiny ruby (Main)
+	if counter_is(SIGNED_BANANA) { toggle_with_sound(FLG_ITEM_BANANA) }	// Signed banana
+	if counter_is(HIEROGLYPH) { toggle_with_sound(FLG_SUMS_HIEROGLYPH) }	// Hieroglyph copy
+	if counter_is(CARROT_KEY) { toggle_with_sound(FLG_ITEM_CARROT_KEY) }	// Carrot key
+	if counter_is(TOWER_KEY) { toggle_with_sound(FLG_ITEM_KEY_PUPUKA) }	// Tower key
+	if counter_is(HAWK_EYE) { toggle_with_sound(FLG_ITEM_TAKANOME) }	// Hawk eye
+	if counter_is(SHYNESS_BOOK) { toggle_with_sound(FLG_ITEM_MUKUCHI) }	// Shyness book
+	if counter_is(TENDAKRAUT) { toggle_with_sound(FLG_GUMI_OLDMAN_ITEM) }	// Tendakraut
+	if counter_is(METEORITE_PIECE) { toggle_with_sound(FLG_ITEM_XYZ) }	// Meteorite piece
+	if counter_is(LOCKER_KEY) { toggle_with_sound(FLG_ITEM_KEY_LOCKER) }	// Lockey key
+	if counter_is(BAD_KEY_MACHINE) { toggle_with_sound(FLG_ITEM_GAUS) }	// Bad key machine
+	if counter_is(BUBBLE_GUM) { toggle_with_sound(FLG_ITEM_BUBBLE_GUM) }	// Bubble gum
+	if counter_is(TINY_RUBY) { toggle_with_sound(FLG_ITEM_TINY_RUBY) }	// Tiny ruby (Poo)
+	*/
+eob
+
+// Turn active flag off or vice versa
+command toggle_with_sound(flg) {
+	store_registers_shared
+	toggle(flg)
+	if flag flg { sound(SND_GIFTOPEN) }
+	else { sound(SND_BOXTAKE) }
+	load_registers_shared
+}

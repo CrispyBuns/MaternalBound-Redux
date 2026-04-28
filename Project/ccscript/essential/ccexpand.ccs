@@ -3,10 +3,11 @@ import "../essential/fade_tools.ccs"
 import "../essential/cc_asmcall.ccs"
 import "../essential/cc_char_in_party.ccs"
 import "../essential/jsl_rts.ccs"
+import "../bugfixes/try_deposit_money.ccs"
+import "../bugfixes/try_give_money.ccs"
 import "../redux/goods_menu_equip.ccs"
+import "../redux/item_determiners.ccs"
 import "../redux/movscr_codes.ccs"
-import "../modmenu/asm/drug_util.ccs"
-import "../modmenu/asm/cc_actionscript.ccs"
 
 // CCExpand v0.3 - Additional CCScript codes
 // Initial version by jtolmar
@@ -41,7 +42,7 @@ CodeTable: {
   long Original1A00 // [1A 00] -- character select menu, no cancel
   long Original1A01 // [1A 01] -- character select menu, can cancel
   long SwirlDisplayRGB // [1A 02]
-  long DoNothing // [1A 03]
+  long CCUseItem // [1A 03]
   long Original1A04 // [1A 04] -- unused
   long Original1A05 // [1A 05] -- display character inventory
   long Original1A06 // [1A 06] -- display shop menu
@@ -53,20 +54,20 @@ CodeTable: {
   long CC_code_AsmCall // [1A 0C]
   long CC_CustomFadeout // [1A 0D]
   long CC_CustomFadein  // [1A 0E]
-  long cc_text_speed.CC_code_gettextspeed // [1A 0F]
-  long cc_text_speed.CC_code_settextspeed // [1A 10]
+  long CC_ItemDeterminer // [1A 0F]
+  long DoNothing // [1A 10]
   long CC_CharInParty // [1A 11]
-  long CC_BreakEverything // [1A 12]
-  long CC_Drug // [1A 13]
-  long cc_main_menu.CC_Goods // [1A 14]
-  long cc_main_menu.CC_Equip // [1A 15]
+  long DoNothing // [1A 12]
+  long DoNothing // [1A 13]
+  long DoNothing // [1A 14]
+  long DoNothing // [1A 15]
   long DoNothing // [1A 16]
-  long cc_main_menu.CC_Status // [1A 17]
-  long cc_main_menu.CC_PSI // [1A 18]
-  long cc_main_menu.CC_Close_HP // [1A 19]
-  long DoNothing // [1A 1A]
-  long cc_actionscript.IMPL_SpriteScript // [1A 1B]
-  long cc_actionscript.IMPL_NpcScript    // [1A 1C]
+  long DoNothing // [1A 17]
+  long CC_TryGiveMoney // [1A 18]
+  long CC_CanGiveMoney // [1A 19]
+  long CC_CanDepositMoney // [1A 1A]
+  long DoNothing // [1A 1B]
+  long DoNothing // [1A 1C]
   long DoNothing // [1A 1D]
   long DoNothing // [1A 1E]
   long DoNothing // [1A 1F]
@@ -75,21 +76,6 @@ CodeTable: {
   // ...
   // You can keep adding them up to [1A FF].
 }
-
-CC_BreakEverything: M_EB_Function_Wrapper({
-  JSL(Brk)
-})
-
-Brk: {
-  //LDA_i(0x0420) // Junk values
-  //LDX_i(0x0069)
-  ASM_JSL_RTS(BANKC0_RTL, 0xC008C3)
-	RTL }
-
-CC_Drug: M_EB_Function_Wrapper({
-    LDA_a(0x97CC)  // Global backup result window register
-    JSL(InitDrug)
-})
 
 // Here is documentation on the various helper functions and macros available
 // for use in your assembly code.
@@ -561,9 +547,75 @@ Original1A0A: ReturnToOriginalBranch(0xc17c0b)
 Original1A0B: ReturnToOriginalBranch(0xc17c1f)
 
 DoNothing: {
-  RTL
+	RTL
 }
 
 SwirlDisplayRGB: {
 
+}
+
+// CCUseItem for Key items menu, made by Vittorio
+CCUseItem: {
+	// Allocate what the routine uses (+2).
+	REP	(0x31)
+	PHD
+	TDC
+	ADC_i	(0xFFD0)
+	TCD
+
+	// Character to $2A, slot to $2C, item ID to $01.
+
+	// Get item ID from arg, stored to $06.
+	JSL	(R_Get_Argument_Memory)
+	LDA_d	(0x06)
+	SEP	(0x20)
+	STA_d	(0x01)
+	REP	(0x20)
+
+	// Get party leader.
+	LDA_a	(0x9891)
+	AND_i	(0xFF)
+	INC
+	STA_d	(0x2A)
+	STA_d	(0x04)
+
+	// Make the slot 0.
+	STZ_d	(0x2C)
+
+	// Mark this as a custom call.
+	LDA_i	(1)
+	STA_d	(0x2E)
+
+	// These are initialized to 0 too.
+	STZ_d	(0x02)
+	STZ_d	(0x24)
+	STZ_d	(0x26)
+	STZ_d	(0x28)
+
+	// It makes cItem (action arg) the item ID, so the secondary script of NPCs should be changed accordingly.
+	JSL_RTS_C1	(0xC1AFAB) // Right after it gets the item from the character and the slot.
+	PLD
+	RTL
+}
+
+ROM[0xC1AF79] = ADC_i	(0xFFD0) // Reserve 2 more bytes (so we can use $2E).
+
+// Length optimization, and zero out $2E (which indicates a normal call).
+ROM[0xC1AF84] = {
+	STZ_d	(0x06)
+	STZ_d	(0x08)
+	STZ_d	(0x2E)
+	NOP NOP
+	NOP NOP
+}
+
+ROM[0xC1B5AD] = JML(C1AF74_End_Hijack)
+
+C1AF74_End_Hijack: {
+	JSL	(0xC3E521) // Original call to CloseWindow.
+	LDA_d	(0x2E)
+	BNE	(4)
+	JML	(0xC1B5B1) // Normal return with PLD.
+	LDA_i	(1)
+	JML	(0xC1B5B5) // Return without PLD (jump to the RTS).
 }
