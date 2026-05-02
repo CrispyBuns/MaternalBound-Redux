@@ -125,7 +125,6 @@ l_0xc915f6:
 	swap
 	heal_percent(0,100)	// 0x00, 0x64
 	recoverpp_percent(0,100)	// 0x00, 0x64
-	goto(l_0xc91625)
 
 l_0xc91625:
 	inc
@@ -405,9 +404,9 @@ l_0xc91870:
 	goto_if_false(l_0xc919f6)
 
 	switch_call(3)	// 0x03
+		switch_entry(l_0xc91709)
 		switch_entry(l_0xc9175d)
 		switch_entry(l_0xc917b1)
-
 	ctoarg
 	"@I need to charge you ${number(0)}." linebreak
 	call(data_36.l_0xc7dd4d)
