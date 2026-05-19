@@ -546,7 +546,7 @@ l_0xc97d75:
 	"  stuck to the enemy!" promptw
 	eob
 
-l_0xc97da3:
+l_0xc97da3:	// Tofu machine
 	newline
 	"@{user}{get_action_arg}{swap} used" linebreak
 	"  the {itemname(0)}!" next
@@ -603,7 +603,7 @@ l_0xc97e24:
 	promptw
 	eob
 
-l_0xc97e9e:
+l_0xc97e9e:	// Bazooka & Heavy bazooka
 	newline
 	"@{user}{get_action_arg}{swap} fired" linebreak
 	"  the {itemname(0)}!"
@@ -2915,7 +2915,7 @@ l_0xef8e27:
 	"  {itemname(0)}!" promptw
 	eob
 
-l_0xef8e3c:
+l_0xef8e3c:	// Counter PSI-Unit
 	newline
 	"@{user}{get_action_arg}{swap} used the" linebreak
 	"  {itemname(0)}!"
@@ -2927,7 +2927,7 @@ l_0xef8e3c:
 	promptw
 	eob
 
-l_0xef8e5e:
+l_0xef8e5e:	// HP-Sucker
 	newline
 	"@{user}{get_action_arg}{swap} used the" linebreak
 	"  {itemname(0)}!"
@@ -2938,7 +2938,7 @@ l_0xef8e5e:
 	promptw
 	eob
 
-l_0xef8e7e:
+l_0xef8e7e:	// Hungry HP-Sucker
 	newline
 	"@{user}{get_action_arg}{swap} used the" linebreak
 	"  {itemname(0)}!"
@@ -2949,13 +2949,25 @@ l_0xef8e7e:
 	promptw
 	eob
 
-l_0xef8e9e:
+l_0xef8e9e:	// Shield killer
 	newline
 	"@{user}{get_action_arg}{swap} used the" linebreak
 	"  {itemname(0)}!"
 	pause(30)
 	sound(SND_STARMASTER)	// 99
 	battle_animation(0,27)	// 0x00, 0x1B
+	pause(60)
+	promptw
+	eob
+
+Defense_Shower_Battle_Anim:
+	newline
+	"@{user}{get_action_arg}{swap} used the" linebreak
+	"  {itemname(0)}!"
+	pause(20)
+	battle_animation(61,0)	// 0x3D, 0x00
+	pause(5)
+	sound(127)	// 127
 	pause(60)
 	promptw
 	eob
@@ -3342,3 +3354,32 @@ l_0xef9ed7:
 	pause(1)
 	eob
 
+// Macro to loop the PSI animations in a nice way.
+// 'number' goes from 66 to 73.
+// 'duration' is in tenths of a second (so 10 would be about one second)... THOUGH, looping the battle animation causes lots of lag?
+
+command sing_animation(number, duration) {
+	// Start by closing the window and starting the tune.
+	window_closetop
+	music_effect(2)
+	music(4)
+	pause(10)
+	music(91)
+	
+	counter_zero
+	
+	// Loop the animation as long as it's needed.
+_loop:
+	battle_animation(number, number)
+	pause(6)
+	inc
+	
+	if not counter_is(duration) {
+	    goto(_loop)
+	}
+	
+	// Make a sound and restore the battle music.
+	music_effect(3)
+	pause(90)
+	music(186)
+}
