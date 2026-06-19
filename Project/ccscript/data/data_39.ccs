@@ -644,19 +644,19 @@ l_0xc827db:
 	"@Either that or they wanted their medical insurance to cover their grooming." end
 
 l_0xc82862:
-	goto(data_13.l_0xc5d40d)
+	goto(ShopMain.l_0xc5d40d)	//goto(data_13.l_0xc5d40d)
 
 l_0xc82867:
 	eob
 
 l_0xc82868:
-	goto(data_13.l_0xc5d419)
+	goto(ShopMain.l_0xc5d419)	//goto(data_13.l_0xc5d419)
 
 l_0xc8286d:
 	eob
 
 l_0xc8286e:
-	goto(data_13.l_0xc5d425)
+	goto(ShopMain.l_0xc5d425)	//goto(data_13.l_0xc5d425)
 
 l_0xc82873:
 	eob
@@ -666,12 +666,16 @@ l_0xc82874:
 	eob
 
 l_0xc8287a:
+	goto_if_flag(FLG_ITEM_SHOW_TICKET, Topollo_Sold_Out)
 	"@Would you like to buy tickets for the Topollo Theater?" next
 	two_choice_menu("Yes", l_0xc828ca, "No", l_0xc828b3)
 
 l_0xc828b3:
 	"@Oh, I see." next
 	"@You're not a customer." end
+
+Topollo_Sold_Out:
+	"@Sorry, but we are all sold out..." end
 
 l_0xc828ca:
 	"@Orchestra seats and balcony seats are sold out." next
