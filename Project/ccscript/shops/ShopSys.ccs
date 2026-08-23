@@ -1,4 +1,6 @@
 import ShopMain
+import "../definitions/flags.ccs"
+import "../definitions/items.ccs"
 import "../expansion/ccexpand.ccs"
 import "../essential/asm65816.ccs"
 import "../essential/stdext.ccs"
@@ -57,12 +59,12 @@ define UnknownFlag2		= flag 0xE1	// Something to do with if you've sold or not?
 Sound_Cash_Register:
 	//c5d835
 	goto_if_flag(Different_Purchase_Sound, Sound_Ping)
-	sound(12)
+	sound(SND_KACHING)	// 12
 	eob
 
 Sound_Ping:
 	//c5d840
-	sound(120)
+	sound(SND_GUITAR)	// 120
 	eob
 
 
@@ -326,8 +328,22 @@ Selected_Item_String:
 	goto_if_false(Not_Enough_Cash_String)
 	load_registers
 	call(Selected_Item)
-	store_registers_shared
 
+	if flag FLG_TOOL_ITEMS {
+		load_registers swap
+		result_is(BAZOOKA)
+		goto_if_true(_skip_bulk_buy)
+
+		load_registers
+		goto(_continue_buying)
+
+	_skip_bulk_buy:
+		load_registers	// TEST
+		eob
+	}
+
+_continue_buying:
+	store_registers_shared
 	// NEW CODE
 	newline
 	"@How many?" linebreak
@@ -351,7 +367,6 @@ Who_Will_Take_Item_String:
 	call(Who_Will_Take_Item)
 	call(Open_Character_Inventory)
 	goto_if_false(Cancel_Cant_Equip_String)
-	goto(Subtract_Money_String)
 
 Subtract_Money_String:
 	//c5e0de
@@ -362,18 +377,18 @@ Subtract_Money_String:
 	load_registers
 	arg_item_type_is_not(EQUIPPABLE)
 	goto_if_false(Character_Cant_Equip_Bought_String)
-	call(0xc5e25b)
-	call(0xc5e26a)
+	call(0xc5e25b)		// Get equippable item type
+	call(0xc5e26a)		// Give and check if item can be equipped
 	goto_if_false(Character_Cant_Equip_String)
 	load_registers_shared
 	take_from_location(0,0)
-	call(0xc5e3a5)
+	call(0xc5e3a5)		// Get buying price, take money and give item
 	call(Sound_Cash_Register)
 	store_registers
 	call(Equip_Now)
 
-	call(0xc7dd4f)				//Print Yes/No text
-	call(0xc7dd5e)				//Moonside reverse choice flag check
+	call(0xc7dd4f)		//Print Yes/No text
+	call(0xc7dd5e)		//Moonside reverse choice flag check
 	switch_goto(2)
 		switch_entry(List_Stat_Change)
 		switch_entry(Buy_Previous_Equipment_String_3)
@@ -392,7 +407,7 @@ Subtract_Money_String:
 
 List_Stat_Change:
 	//c5e136
-	sound(115)
+	sound(SND_BOXOPEN1)	// 115
 	call(Defense_Old_String)	//Reports original offense/defense
 	load_registers
 	equip(0,0)
@@ -405,8 +420,8 @@ List_Stat_Change:
 	goto_if_false(Buy_Previous_Equipment_String_3)
 	call(Buy_Previous_Equipment)
 
-	call(0xc7dd4f)				//Print Yes/No text
-	call(0xc7dd5e)				//Moonside reverse choice flag check
+	call(0xc7dd4f)			//Print Yes/No text
+	call(0xc7dd5e)			//Moonside reverse choice flag check
 	switch_goto(2)
 		switch_entry(Buy_Previous_Equipment_String_1)
 		switch_entry(Buy_Previous_Equipment_String_3)
@@ -742,8 +757,6 @@ Select_Sell_Single_Char:
 	swap
 	eob
 
-
-
 Check_Item_Number: // all instances of it being called have been commented out
 	//c5e3bc
 	store_registers
@@ -820,9 +833,17 @@ BulkBuy:
 	newline "   " number_input(2) // If you want to add some decoration around the input selector, do it here
 	
 	store_registers
-	if result_is(0) { call(Bulk_Buy_Change_Of_Mind) eob } // backed out of the selector / chose 0 
+	if result_is(0) {	// Backed out of the selector / chose 0
+		call(Bulk_Buy_Change_Of_Mind)
+		eob
+	}
 	load_registers
-	if result_is(1) { ctoarg store_registers newline goto(Selected_Item_String_Pt2) } // chose just one 	
+	if result_is(1) {	// Choose just one
+		ctoarg
+		store_registers
+		newline
+		goto(Selected_Item_String_Pt2)
+	}
 	load_registers
 
 	//Maedaez's suggestion

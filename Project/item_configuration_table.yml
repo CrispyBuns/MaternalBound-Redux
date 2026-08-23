@@ -145,7 +145,7 @@
   - 10
   - 138
   - 0
-  Cost: 0 #149
+  Cost: 0
   Help Text Pointer: item_descriptions.l_0xc53870
   Misc Flags:
   - jeff can use
@@ -559,7 +559,7 @@
   - 0
   - 0
   - 0
-  Cost: 0
+  Cost: 305
   Help Text Pointer: item_descriptions.l_0xc53ba6
   Misc Flags:
   - jeff can use
@@ -2344,7 +2344,7 @@
   - ness can use
   - paula can use
   - poo can use
-  Name: Pettenella's socks
+  Name: Petenella's socks
   Type: 52
 153:
   Action: 173
@@ -3584,15 +3584,15 @@
   - poo can use
   Name: Lucky sandwich
   Type: 32
-230:	# Unused
+230:
   Action: 249
   Argument:
   - 1
-  - 20
+  - 5
   - 1
   - 0
   Cost: 128
-  Help Text Pointer: item_descriptions.l_0xc56187
+  Help Text Pointer: item_descriptions.l_0xc5614b
   Misc Flags:
   - item disappears when used
   - jeff can use

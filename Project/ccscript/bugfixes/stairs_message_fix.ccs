@@ -1,0 +1,37 @@
+// Stairs glitch fix by ShadowOne333
+//------------------------------------
+import "../essential/asm65816.ccs"
+//------------------------------------
+// The original game adds a slight "delay" in which the party leader automatically moves a few steps down/up stairs.
+// During this brief momoment, if the SHOW_HP_ALERT routine happens to run, it completely breaks that automatic movement causing a collision break
+// What the original game does during this part, is that, when the player gets on a stairs tile, the code shifts the player's movement either -1 or +1 in Y. When the HP Alert message pops up, that slight shift in the Y-axis is what breaks the collision out of the stairs.
+//------------------------------------
+
+// Override the -1/+1 code that the game does when the party walks into a stairs tile
+
+// GET_ON_STAIRS
+ROM[0xC06F9C] = {
+	LDA_i	(1)	// 0x0001
+	STA_d	(0x12)	// LOCAL01
+	JMP	(0xC06FBC)	// Banch to UNKNOWN2 (0xC06FBC)
+}
+
+ROM[0xC06FAE] = {
+	LDA_i	(1)	// 0x0001
+	STA_d	(0x12)	// LOCAL01
+	JMP	(0xC06FBC)	// Banch to UNKNOWN2 (0xC06FBC)
+}
+
+// GET_OFF_STAIRS
+ROM[0xC07007] = {
+	LDA_i	(1)	// 0x0001
+	STA_d	(0x12)	// LOCAL01
+	JMP	(0xC07025)	// Banch to UNKNOWN2 (0xC07025)
+}
+
+ROM[0xC07016] = {
+	LDA_i	(1)	// 0x0001
+	STA_d	(0x12)	// LOCAL01
+	JMP	(0xC07025)	// Banch to UNKNOWN2 (0xC07025)
+}
+//------------------------------------

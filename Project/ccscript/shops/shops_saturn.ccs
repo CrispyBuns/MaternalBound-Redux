@@ -1,0 +1,252 @@
+//------------------------------------------------------------------
+import "../definitions/flags.ccs"
+import "../essential/asm65816.ccs"
+import "../expansion/ccexpand.ccs"
+import "../essential/commands.ccs"
+import "../essential/stdext.ccs"
+//------------------------------------------------------------------
+// Saturn Valley shops
+//------------------------------------------------------------------
+SaturnValley_Greeting:		//l_0xc530a2
+	font_saturn
+	"@Hi Hi Hi." linebreak
+	"  You come" linebreak
+	"  buying?" next
+	"@You can sell," linebreak
+	"  too." next
+	"@I, Mr. Saturn,  boing" next
+	"@can do all  for you." next
+	"@What do you" linebreak
+	"  want zoom?" linebreak
+	font_normal
+	eob
+
+SaturnValley_Exit_Store_Buy:	//l_0xc530fc
+	font_saturn
+	"@Oh," linebreak
+	"  you thank!" wait
+	font_normal
+	eob
+
+SaturnValley_Exit_Store_Dont_Buy:	//l_0xc5310f
+	font_saturn
+	"@Thank you." linebreak
+	"  Boing!" wait
+	font_normal
+	eob
+
+SaturnValley_Open_Shop_Window:	//l_0xc5311f
+	font_saturn
+	"@What you" linebreak
+	"  buying zoom?" promptw
+	font_normal
+	eob
+
+SaturnValley_Selected_Item:		//l_0xc53134
+	font_saturn
+	"@The" linebreak
+	"  {itemname(0)}?" next
+	font_normal
+	eob
+
+SaturnValley_Who_Will_Take_Item:	//l_0xc53144
+	font_saturn
+	"@Which" linebreak
+	"  you carry" linebreak
+	"  this burden?" promptw
+	font_normal
+	eob
+
+SaturnValley_Equip_Now:		//l_0xc53161
+	font_saturn
+	"@Equip" linebreak
+	"  here?" linebreak
+	font_normal
+	eob
+
+SaturnValley_Buy_Previous_Equipment:	//l_0xc53172
+ // arg: item name, res: item price
+	font_saturn
+	"@{itemname(0)}?" next
+	"@Uhh," linebreak
+	"  that one is" linebreak
+	"  " swap "$" number(0) "." next
+	"@What think you about" next
+	"@that price..." linebreak
+	"  zoom?" linebreak
+	font_normal
+	eob
+
+SaturnValley_Cant_Equip_Item:	//l_0xc531ba
+// arg: player name
+	font_saturn
+	"@{name(0)} is not be able to equip this." next
+	"@Boing!" next
+	"@Still wanna" linebreak
+	"  buy?" linebreak
+	font_normal
+	eob
+
+SaturnValley_Cancel_Cant_Equip:	//l_0xc531ea
+// despite the name, it's often used as a generic change of mind
+	font_saturn
+	"@If you not" linebreak
+	"  gonna buy," next
+	"@don't" linebreak
+	"  buy zoom!" next
+	font_normal
+	eob
+
+SaturnValley_Not_Enough_Cash:	//l_0xc53212
+	sound(SND_ERRORBEEP)
+	font_saturn
+	"@Uhh," next
+	"@at a looking boing glance," linebreak
+	"  no chance." next
+	"@No" linebreak
+	"  enough" next
+	"@cashoooooola." linebreak
+	"  Zoicks!" next
+	font_normal
+	eob
+
+SaturnValley_Whole_Party_Full_Inventory:	//l_0xc53259
+	sound(SND_ERRORBEEP)
+	font_saturn
+	"@What a happy happy" next
+	"@surprise." linebreak
+	"  Zoom..." next
+	"@You have" linebreak
+	"  much" linebreak
+	"  junk." next
+	font_normal
+	eob
+
+SaturnValley_What_To_Sell:		//l_0xc5328f
+	font_saturn
+	"@You want to" linebreak
+	"  sell me" linebreak
+	"  things" next
+	"@at me boing?" promptw
+	font_normal
+	eob
+
+SaturnValley_Confirm_Selling:	//l_0xc532b3
+// arg: item ID, res: item sell price
+	font_saturn
+	"@{itemname(0)}?" next
+	"@The most" linebreak
+	"  us pay that" linebreak
+	"  is {swap}$" number(0) "." next
+	"@That kay-o" linebreak
+	"  on you?" next
+	"@Ding! Ding!" linebreak
+	font_normal
+	eob
+
+SaturnValley_Cancel_Selling:	//l_0xc532fa
+	font_saturn
+	"@Oh Joy!  Zooooom!" next
+	font_normal
+	eob
+
+SaturnValley_Nothing_To_Sell:	//l_0xc53312
+	font_saturn
+	"@Ah-choo!  Hi Hi Hi!" next
+	"@try of" linebreak
+	"  tricking boing?" next
+	"@'Cause you" linebreak
+	"  have no" linebreak
+	"  anything" next
+	"@ selling.  Ding Ding!" next
+	font_normal
+	eob
+
+SaturnValley_Unsellable_Item:	//l_0xc53363
+	font_saturn
+	"@Dear, dear,  dear  ...Boing!" next
+	"@No can" linebreak
+	"  buy that." next
+	font_normal
+	eob
+
+SaturnValley_Transaction_Thanks:	//l_0xc5338f
+	font_saturn
+	"@Oh," linebreak
+	"  you thank." next
+	font_normal
+	eob
+
+SaturnValley_Transaction_Thanks_2:	//l_0xc533a3
+// when is this used?
+	font_saturn
+	"@Thanks!  Ding Zoom!" next
+	font_normal
+	eob
+
+SaturnValley_Request_Another_Transaction:	//l_0xc533b6
+	font_saturn
+	"@Is there  anything  Zoom" next
+	"@else need?" next
+	font_normal
+	eob
+
+SaturnValley_Do_Another_Transaction:	//l_0xc533d5
+	font_saturn
+	"@What next, Boing?" linebreak
+	font_normal
+	eob
+
+SaturnValley_Chosen_Character_Inventory_Full:	//l_0xc533e5
+	font_saturn
+	"@{name(0)} has" linebreak
+	"  kookie much" linebreak
+	"  junk?" next
+	"@Does anyone" linebreak
+	"  want help" linebreak
+	"  Zoom?" next
+	font_normal
+	eob
+
+SaturnValley_Bulk_Buy_Lots:
+	font_saturn
+	"@This all," linebreak
+	"  Zoom?" next
+	font_normal
+	eob
+
+SaturnValley_Bulk_Buy_Not_Enough_Cash:
+	sound(SND_ERRORBEEP)
+	font_saturn
+	"@Uhh," next
+	"@at a looking boing glance," linebreak
+	"  no chance." next
+	"@No" linebreak
+	"  enough" next
+	"@cashoooooola." linebreak
+	"  Zoicks!" next
+	font_normal
+	eob
+
+SaturnValley_Bulk_Buy_Full_Inventory:
+	sound(SND_ERRORBEEP)
+	font_saturn
+	"@What a happy happy" next
+	"@surprise." linebreak
+	"  Zoom..." next
+	"@You have" linebreak
+	"  much" linebreak
+	"  junk." next
+	font_normal
+	eob
+
+SaturnValley_Bulk_Buy_Change_Of_Mind:
+	font_saturn
+	"@If you not" linebreak
+	"  gonna buy," next
+	"@don't" linebreak
+	"  buy zoom!" next
+	font_normal
+	eob
+
+//------------------------------------------------------------------

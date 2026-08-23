@@ -1,0 +1,187 @@
+//------------------------------------
+// Max Stats limit fix by ShadowOne333
+//------------------------------------
+import "../essential/asm65816.ccs"
+//------------------------------------
+// If any Stat (other than Offense and Defense) values exceed 255 (0xFF), the Stats will overflow and roll back to 0, due to the variable being an signed value in the code.
+// The original game only properly caps both Offense and Defense up to 255, but the rest of the stats (Speed, Guts, Luck Vitality, IQ), don't have such a limit.
+// This code fixes that issue by limiting the maximum Stat values when levelling up to have a maximum limit of 255.
+//------------------------------------
+//	Speed Max Limit fixes
+//------------------------------------
+// Apply the max Speed limit on character Level Up for Max Speed
+ROM[0xC21B69] = JML	(Max_Speed_Limit_Fix)
+
+Max_Speed_Limit_Fix: {
+	ADC_d	(4)		// Original: ADC @VIRTUAL04
+
+	// Cap the final result at 255
+	CMP_i	(0x0100)
+	BCC	(3)
+	LDA_i	(0x00FF)
+
+	STA_d	(0x0F)		// STA @LOCAL01
+	STA_d	(4)		// STA @VIRTUAL04
+	JML	(0xC21B6F)
+}
+
+// Apply the max Speed limit when applying a Speed Boost through a capsule
+ROM[0xC2B4D8] = JML	(Max_Speed_Boost_Limit_Fix)
+
+Max_Speed_Boost_Limit_Fix: {
+	LDA_x	(0)
+	CLC
+	ADC_d	(0)
+	PLX
+
+	// If carry is set, we overflowed past 255
+	BCC	(2)		// No carry = no overflow
+	LDA_8	(0xFF)		// Overflow detected, force to 255
+
+	STA_x	(0)
+	JML	(0xC2B4E2)
+}
+
+//------------------------------------
+//	Guts Max Limit fixes
+//------------------------------------
+// Apply the max Guts limit on character Level Up for Max Guts
+ROM[0xC21C22] = JML	(Max_Guts_Limit_Fix)
+
+Max_Guts_Limit_Fix: {
+	ADC_d	(4)		// Original: ADC @VIRTUAL04
+
+	// Cap the final result at 255
+	CMP_i	(0x0100)
+	BCC	(3)
+	LDA_i	(0x00FF)
+
+	STA_d	(0x0F)		// STA @LOCAL01
+	STA_d	(4)		// STA @VIRTUAL04
+	JML	(0xC21C28)
+}
+
+// Apply the max Guts limit when applying a Guts Boost through a capsule
+ROM[0xC2B471] = JML	(Max_Guts_Boost_Limit_Fix)
+
+Max_Guts_Boost_Limit_Fix: {
+	LDA_x	(0)
+	CLC
+	ADC_d	(0)
+	PLX
+
+	// If carry is set, we overflowed past 255
+	BCC	(2)		// No carry = no overflow
+	LDA_8	(0xFF)		// Overflow detected, force to 255
+
+	STA_x	(0)
+	JML	(0xC2B47B)
+}
+
+//------------------------------------
+//	Luck Max Limit fixes
+//------------------------------------
+// Apply the max Luck limit on character Level Up for Max Luck
+ROM[0xC21D2A] = JML	(Max_Luck_Limit_Fix)
+
+Max_Luck_Limit_Fix: {
+	ADC_d	(4)		// Original: ADC @VIRTUAL04
+
+	// Cap the final result at 255
+	CMP_i	(0x0100)
+	BCC	(3)
+	LDA_i	(0x00FF)
+
+	STA_d	(0x0F)		// STA @LOCAL01
+	STA_d	(4)		// STA @VIRTUAL04
+	JML	(0xC21D30)
+}
+
+// Apply the max Luck limit when applying a Luck Boost through a capsule
+ROM[0xC2B5A5] = JML	(Max_Luck_Boost_Limit_Fix)
+
+Max_Luck_Boost_Limit_Fix: {
+	LDA_x	(0)
+	CLC
+	ADC_d	(0)
+	PLX
+
+	// If carry is set, we overflowed past 255
+	BCC	(2)		// No carry = no overflow
+	LDA_8	(0xFF)		// Overflow detected, force to 255
+
+	STA_x	(0)
+	JML	(0xC2B5AF)
+}
+//------------------------------------
+//	Vitality Max Limit fixes
+//------------------------------------
+// Apply the max Vitality limit on character Level Up
+ROM[0xC21D72] = JML	(Max_Vitality_Limit_Fix)
+
+Max_Vitality_Limit_Fix: {
+	LDA_x	(0x99EF)	// PARTY_CHARACTERS+char_struct::base_vitality,X
+	CLC
+	ADC_x	(0x9A27)	// PARTY_CHARACTERS+char_struct::boosted_vitality,X
+
+	// Added check to make the maximum limit 255 instead of overflowing
+	BCC	(2)		// Branch if Overflow Set
+	LDA_8	(0xFF)		// Otherwise, force the max Vitality number to be 255 before printing the value
+
+	STA_x	(0x99E8)	// PARTY_CHARACTERS+char_struct::vitality,X
+	JML	(0xC21D7C)	// Return to the original hijacked code 
+}
+
+// Apply the max Vitality limit when applying a Vitality Boost through a capsule
+ROM[0xC2B53F] = JML	(Max_Vitality_Boost_Limit_Fix)
+
+Max_Vitality_Boost_Limit_Fix: {
+	LDA_x	(0)
+	CLC
+	ADC_d	(0)
+	PLX
+
+	// If carry is set, we overflowed past 255
+	BCC	(2)		// No carry = no overflow
+	LDA_8	(0xFF)		// Overflow detected, force to 255
+
+	STA_x	(0)
+	JML	(0xC2B549)
+}
+//------------------------------------
+//	IQ Max Limit fixes
+//------------------------------------
+// Apply the max IQ limit on character Level Up
+ROM[0xC21D8A] = JML	(Max_IQ_Limit_Fix)
+
+Max_IQ_Limit_Fix: {
+	LDA_x	(0x99F0)	// PARTY_CHARACTERS+char_struct::base_iq,X
+	CLC
+	ADC_x	(0x9A28)	// PARTY_CHARACTERS+char_struct::boosted_iq,X
+
+	// Added check to make the maximum limit 255 instead of overflowing
+	BCC	(2)		// Branch if Overflow Set
+	LDA_8	(0xFF)		// Otherwise, force the max Vitality number to be 255 before printing the value
+
+	STA_x	(0x99E9)	// PARTY_CHARACTERS+char_struct::iq,X
+
+	JML	(0xC21D94)	// Return to the original hijacked code 
+}
+
+// Apply the max IQ limit when applying a IQ Boost through a capsule
+ROM[0xC2B40A] = JML	(Max_IQ_Boost_Limit_Fix)
+
+Max_IQ_Boost_Limit_Fix: {
+	LDA_x	(0)
+	CLC
+	ADC_d	(0)
+	PLX
+
+	// If carry is set, we overflowed past 255
+	BCC	(2)		// No carry = no overflow
+	LDA_8	(0xFF)		// Overflow detected, force to 255
+
+	STA_x	(0)
+	JML	(0xC2B414)
+}
+//------------------------------------

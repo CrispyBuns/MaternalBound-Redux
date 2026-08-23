@@ -1,6 +1,7 @@
 // General ASM code for fixing or modifying different things in-game
 //------------------------------------------------------------------
 import "../essential/asm65816.ccs"
+import "../essential/jsl_rts.ccs"
 //------------------------------------------------------------------
 /* Lower HP/PP windows by one tile */
 // REMOVED IN FAVOUR OF MOTHER 3 SPRITES CODE BY VITTORIO
