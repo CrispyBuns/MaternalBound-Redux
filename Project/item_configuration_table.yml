@@ -1029,7 +1029,7 @@
   - ness can use
   - paula can use
   - poo can use
-  Name: Pixie's bracelet
+  Name: Fairy bracelet
   Type: 24
 71:
   Action: 240
@@ -3483,7 +3483,7 @@
   Name: Cup of noodles
   Type: 32
 224:
-  Action: 249
+  Action: 319
   Argument:
   - 0
   - 16
@@ -3500,7 +3500,7 @@
   Name: Skip sandwich
   Type: 32
 225:
-  Action: 249
+  Action: 319
   Argument:
   - 0
   - 34
