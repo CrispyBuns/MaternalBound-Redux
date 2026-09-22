@@ -1,0 +1,182 @@
+# .github/workflows/build-maternalbound-redux.yml
+#
+# Builds the MaternalBound Redux BPS patch using CoilSnake, then publishes
+# it as a GitHub Release.
+#
+# NO Node.js-based actions are used anywhere in this workflow (no
+# actions/checkout, actions/setup-python, actions/upload-artifact, or any
+# other marketplace JS action). Every step is a plain shell command using
+# tools already on the ubuntu-latest image: git, curl, apt, python3, make,
+# and the GitHub CLI (gh, a Go binary).
+#
+# This workflow does NOT ship or embed a ROM. You must provide a direct
+# download URL to your own, legally-dumped, clean "EarthBound (USA)" ROM
+# each time you run it. The workflow downloads it, verifies its SHA-1
+# checksum against the one baked into the project's own Makefile, and
+# fails immediately if it doesn't match.
+#
+# Only the resulting .bps patch and .mlb debug symbols are attached to the
+# GitHub Release — never the compiled ROM itself — to stay consistent with
+# how this project (and the SNES romhacking community generally)
+# distributes hacks: as patches applied to a ROM you already own, not as
+# ROMs.
+
+name: Build MaternalBound Redux
+
+on:
+  workflow_dispatch:
+    inputs:
+      rom_url:
+        description: >
+          Direct HTTPS download URL to your own clean "EarthBound (USA)"
+          .sfc/.smc ROM dump. Must resolve to the raw ROM bytes (not an
+          HTML page) — e.g. a pre-signed link to storage you control.
+        required: true
+        type: string
+      tag_name:
+        description: 'Release tag to create, e.g. v1.4.0'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark this as a pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # needed for `gh release create` to create the tag + release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      CLEAN_ROM_SHA1: d67a8ef36ef616bc39306aa1b486e1bd3047815a
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Check out repository
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "${{ github.ref_name }}" \
+            "https://github.com/${{ github.repository }}.git" .
+
+      - name: Download the clean ROM
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o EarthBound.sfc "${{ inputs.rom_url }}"
+          echo "Downloaded file size:"
+          stat -c '%s bytes' EarthBound.sfc
+
+      - name: Verify ROM checksum
+        run: |
+          set -euo pipefail
+          ACTUAL=$(sha1sum EarthBound.sfc | awk '{print $1}')
+          echo "Expected: $CLEAN_ROM_SHA1"
+          echo "Actual:   $ACTUAL"
+          if [ "$ACTUAL" != "$CLEAN_ROM_SHA1" ]; then
+            echo "::error::ROM checksum mismatch. This must be an unmodified, unheadered 'EarthBound (USA)' dump."
+            exit 1
+          fi
+          echo "Checksum verified."
+
+      - name: Install Python 3.8
+        run: |
+          set -euo pipefail
+          # ubuntu-latest's system python3 is newer than what upstream CoilSnake's
+          # own CI targets (3.8), so pull 3.8 from the deadsnakes PPA instead of
+          # relying on a JS-based setup action.
+          #
+          # NOTE: deadsnakes' coverage of the very newest Ubuntu release can lag
+          # behind GitHub's ubuntu-latest image. If this step fails to find a
+          # candidate, pin `runs-on: ubuntu-22.04` instead of `ubuntu-latest`,
+          # which deadsnakes supports reliably.
+          sudo add-apt-repository -y ppa:deadsnakes/ppa
+          sudo apt-get update
+          sudo apt-get install -y python3.8 python3.8-venv python3.8-distutils
+          curl -sS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+          sudo python3.8 /tmp/get-pip.py
+          python3.8 -m pip --version
+
+      - name: Install CoilSnake (provides coilsnake-cli)
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/pk-hack/CoilSnake.git /tmp/CoilSnake
+          cd /tmp/CoilSnake
+          python3.8 -m pip install --upgrade pip
+          python3.8 -m pip install -r requirements.txt
+          python3.8 -m pip install .
+          # Sanity check that the CLI entry point is on PATH before we rely on it in `make`
+          command -v coilsnake-cli
+          coilsnake-cli --help || true
+
+      - name: Prepare build tools (flips, asar)
+        run: |
+          set -euo pipefail
+          chmod +x Binaries/flips Binaries/asar
+
+          # The binaries checked into the repo may be Windows builds. If they
+          # won't execute on this Linux runner, fall back to fetching Linux
+          # release builds and swap them in at the same paths the Makefile expects.
+          if ! file Binaries/flips | grep -qi 'ELF'; then
+            echo "Binaries/flips is not a Linux binary — fetching a Linux build instead."
+            curl -fL -o /tmp/flips.zip \
+              "$(curl -fsSL https://api.github.com/repos/Alcaro/Flips/releases/latest \
+                 | grep -oE '"browser_download_url": *"[^"]*linux[^"]*"' \
+                 | head -n1 | cut -d'"' -f4)"
+            unzip -o /tmp/flips.zip -d /tmp/flips-extract
+            find /tmp/flips-extract -type f -iname 'flips*' -exec cp {} Binaries/flips \;
+            chmod +x Binaries/flips
+          fi
+
+          if ! file Binaries/asar | grep -qi 'ELF'; then
+            echo "Binaries/asar is not a Linux binary — fetching a Linux build instead."
+            curl -fL -o /tmp/asar.zip \
+              "$(curl -fsSL https://api.github.com/repos/RPGHacker/asar/releases/latest \
+                 | grep -oE '"browser_download_url": *"[^"]*linux[^"]*"' \
+                 | head -n1 | cut -d'"' -f4)"
+            unzip -o /tmp/asar.zip -d /tmp/asar-extract
+            find /tmp/asar-extract -type f -iname 'asar' -exec cp {} Binaries/asar \;
+            chmod +x Binaries/asar
+          fi
+
+          ./Binaries/flips --version || true
+          ./Binaries/asar --version || true
+
+      - name: Build (apply base BPS patch, compile sound driver + project, produce final BPS)
+        run: |
+          set -euo pipefail
+          # The Makefile's create_debug_symbols target shells out to a bare
+          # `python3`. Put python3.8 first on PATH for this invocation so
+          # that's the interpreter it picks up, matching what CoilSnake was
+          # installed against.
+          export PATH="/usr/bin:$PATH"
+          sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 10
+          make all
+
+      - name: Confirm the expected outputs exist
+        run: |
+          set -euo pipefail
+          test -f "Patches/MaternalBound-Redux.bps"
+          test -f "MaternalBound-Redux.mlb"
+
+      - name: Remove ROM and compiled ROM before publishing anything
+        if: always()
+        run: |
+          rm -f EarthBound.sfc PSIAnimsBase.sfc "Mother 2.sfc"
+
+      - name: Create GitHub Release with the BPS patch
+        run: |
+          set -euo pipefail
+          PRERELEASE_FLAG=""
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          gh release create "${{ inputs.tag_name }}" \
+            "Patches/MaternalBound-Redux.bps" \
+            "MaternalBound-Redux.mlb" \
+            --repo "${{ github.repository }}" \
+            --title "MaternalBound Redux ${{ inputs.tag_name }}" \
+            --notes "Automated build from commit ${{ github.sha }}. Apply the .bps patch to your own clean EarthBound (USA) ROM with FLIPS or a similar patcher." \
+            --target "${{ github.sha }}" \
+            $PRERELEASE_FLAG
