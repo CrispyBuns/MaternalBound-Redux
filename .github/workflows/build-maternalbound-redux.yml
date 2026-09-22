@@ -61,12 +61,43 @@ jobs:
           git clone --depth 1 --branch "${{ github.ref_name }}" \
             "https://github.com/${{ github.repository }}.git" .
 
+      - name: Debug — inspect Music/Packs/79 for the song-67 FileNotFoundError
+        run: |
+          echo "Contents of Project/Music/Packs/79:"
+          ls -la "Project/Music/Packs/79" || echo "(directory does not exist)"
+          echo
+          echo "Case-insensitive search for song-67 anywhere under Project/Music:"
+          find Project/Music -iname 'song-67*' 2>/dev/null || true
+          echo
+          echo "If the file above has different casing than 'song-67.*', that's a"
+          echo "Windows/Linux filename-casing mismatch (ext4 is case-sensitive)."
+          echo "If nothing was found at all, the file was likely never committed."
+
       - name: Download the clean ROM
         run: |
           set -euo pipefail
           curl -fL --retry 3 -o EarthBound.sfc "${{ inputs.rom_url }}"
           echo "Downloaded file size:"
           stat -c '%s bytes' EarthBound.sfc
+
+      - name: Verify ROM size (3 MB, unheadered FastROM)
+        run: |
+          set -euo pipefail
+          # EarthBound (USA) is a 24 Mbit FastROM cart -> 3,145,728 bytes with
+          # no copier header. Checking this explicitly, before the SHA1 check,
+          # gives a much clearer error than a bare checksum mismatch when the
+          # real problem is just a leftover 512-byte header on the dump.
+          EXPECTED_SIZE=3145728
+          ACTUAL_SIZE=$(stat -c '%s' EarthBound.sfc)
+          if [ "$ACTUAL_SIZE" -ne "$EXPECTED_SIZE" ]; then
+            if [ "$ACTUAL_SIZE" -eq $((EXPECTED_SIZE + 512)) ]; then
+              echo "::error::ROM is 512 bytes larger than expected ($ACTUAL_SIZE vs $EXPECTED_SIZE). This looks like a copier-headered dump — strip the 512-byte header and re-upload."
+            else
+              echo "::error::ROM size mismatch: got $ACTUAL_SIZE bytes, expected $EXPECTED_SIZE bytes (3 MB, unheadered)."
+            fi
+            exit 1
+          fi
+          echo "ROM size verified: $ACTUAL_SIZE bytes (3 MB, unheadered FastROM)."
 
       - name: Verify ROM checksum
         run: |
