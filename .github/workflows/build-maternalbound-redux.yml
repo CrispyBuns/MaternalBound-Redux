@@ -112,7 +112,19 @@ jobs:
           git clone --depth 1 https://github.com/pk-hack/CoilSnake.git /tmp/CoilSnake
           cd /tmp/CoilSnake
           python3 -m pip install --upgrade pip
-          python3 -m pip install -r requirements.txt
+
+          # The freshly cloned repo doesn't always have a requirements.txt at
+          # its root (upstream has moved it, folded it into setup.py, or it's
+          # simply not there on whatever the default branch's HEAD is right
+          # now) — don't hard-fail the whole job over that, since `pip install .`
+          # below will still pull in whatever setup.py/pyproject.toml declares.
+          if [ -f requirements.txt ]; then
+            python3 -m pip install -r requirements.txt
+          else
+            echo "::warning::No requirements.txt at the CoilSnake repo root — skipping it. Repo root contents:"
+            ls -la
+          fi
+
           python3 -m pip install .
           # Sanity check that the CLI entry point is on PATH before we rely on it in `make`
           command -v coilsnake-cli
