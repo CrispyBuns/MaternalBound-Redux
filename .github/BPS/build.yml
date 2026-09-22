@@ -1,0 +1,124 @@
+# .github/workflows/build-maternalbound-redux.yml
+#
+# Builds the MaternalBound Redux BPS patch using CoilSnake.
+#
+# This workflow does NOT ship or embed a ROM. You must provide a direct
+# download URL to your own, legally-dumped, clean "EarthBound (USA)" ROM
+# each time you run it. The workflow downloads it, verifies its SHA-1
+# checksum against the one baked into the project's own Makefile, and
+# fails immediately if it doesn't match.
+#
+# Only the resulting .bps patch and .mlb debug symbols are uploaded as
+# artifacts — never the compiled ROM itself — to stay consistent with how
+# this project (and the SNES romhacking community generally) distributes
+# hacks: as patches applied to a ROM you already own, not as ROMs.
+
+name: Build MaternalBound Redux
+
+on:
+  workflow_dispatch:
+    inputs:
+      rom_url:
+        description: >
+          Direct HTTPS download URL to your own clean "EarthBound (USA)"
+          .sfc/.smc ROM dump. Must resolve to the raw ROM bytes (not an
+          HTML page) — e.g. a pre-signed link to storage you control.
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      CLEAN_ROM_SHA1: d67a8ef36ef616bc39306aa1b486e1bd3047815a
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download the clean ROM
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o EarthBound.sfc "${{ inputs.rom_url }}"
+          echo "Downloaded file size:"
+          stat -c '%s bytes' EarthBound.sfc
+
+      - name: Verify ROM checksum
+        run: |
+          set -euo pipefail
+          ACTUAL=$(sha1sum EarthBound.sfc | awk '{print $1}')
+          echo "Expected: $CLEAN_ROM_SHA1"
+          echo "Actual:   $ACTUAL"
+          if [ "$ACTUAL" != "$CLEAN_ROM_SHA1" ]; then
+            echo "::error::ROM checksum mismatch. This must be an unmodified, unheadered 'EarthBound (USA)' dump."
+            exit 1
+          fi
+          echo "Checksum verified."
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: Install CoilSnake (provides coilsnake-cli)
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/pk-hack/CoilSnake.git /tmp/CoilSnake
+          cd /tmp/CoilSnake
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install .
+          # Sanity check that the CLI entry point is on PATH before we rely on it in `make`
+          command -v coilsnake-cli
+          coilsnake-cli --help || true
+
+      - name: Prepare build tools (flips, asar)
+        run: |
+          set -euo pipefail
+          chmod +x Binaries/flips Binaries/asar
+
+          # The binaries checked into the repo may be Windows builds. If they
+          # won't execute on this Linux runner, fall back to fetching Linux
+          # release builds and swap them in at the same paths the Makefile expects.
+          if ! file Binaries/flips | grep -qi 'ELF'; then
+            echo "Binaries/flips is not a Linux binary — fetching a Linux build instead."
+            curl -fL -o /tmp/flips.zip \
+              "$(curl -fsSL https://api.github.com/repos/Alcaro/Flips/releases/latest \
+                 | grep -oE '"browser_download_url": *"[^"]*linux[^"]*"' \
+                 | head -n1 | cut -d'"' -f4)"
+            unzip -o /tmp/flips.zip -d /tmp/flips-extract
+            find /tmp/flips-extract -type f -iname 'flips*' -exec cp {} Binaries/flips \;
+            chmod +x Binaries/flips
+          fi
+
+          if ! file Binaries/asar | grep -qi 'ELF'; then
+            echo "Binaries/asar is not a Linux binary — fetching a Linux build instead."
+            curl -fL -o /tmp/asar.zip \
+              "$(curl -fsSL https://api.github.com/repos/RPGHacker/asar/releases/latest \
+                 | grep -oE '"browser_download_url": *"[^"]*linux[^"]*"' \
+                 | head -n1 | cut -d'"' -f4)"
+            unzip -o /tmp/asar.zip -d /tmp/asar-extract
+            find /tmp/asar-extract -type f -iname 'asar' -exec cp {} Binaries/asar \;
+            chmod +x Binaries/asar
+          fi
+
+          ./Binaries/flips --version || true
+          ./Binaries/asar --version || true
+
+      - name: Build (apply base BPS patch, compile sound driver + project, produce final BPS)
+        run: make all
+
+      - name: Remove ROM and compiled ROM before uploading anything
+        if: always()
+        run: |
+          rm -f EarthBound.sfc PSIAnimsBase.sfc "Mother 2.sfc"
+
+      - name: Upload patch + debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: MaternalBound-Redux-build
+          path: |
+            Patches/MaternalBound-Redux.bps
+            MaternalBound-Redux.mlb
+          if-no-files-found: error
