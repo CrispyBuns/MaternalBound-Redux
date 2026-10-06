@@ -8,6 +8,7 @@ import "../definitions/flags.ccs"
 import "../definitions/items.ccs"
 import "../essential/asm65816.ccs"
 import "../essential/ASMRef.ccs"
+import "../essential/cc_effects.ccs"
 import "../essential/commands.ccs"
 import "../essential/stdext.ccs"
 import "../redux/keyitems.ccs"
@@ -35,7 +36,7 @@ l_0xc88650:
 	music_resume
 
 	window_open(1)
-	"@{name(3)} joined you." promptw
+	"@({name(3)} joined you.)" promptw
 	window_closeall
 
 	pause(1)
@@ -52,6 +53,7 @@ l_0xc88650:
 	unset(FLG_SYS_MONSTER_OFF)	// 11
 	OSS_off	// event(6)
 	restore_npc_members_and_money
+	cc_close_letterbox
 	eob
 
 l_0xc886d7:
@@ -73,7 +75,7 @@ l_0xc886f5:
 l_0xc886f9:
 	window_open(1)
 	title(1, Andonuts)
-	"@What happened?" pause(20)
+	"@What happened?" pause(20) linebreak
 	"  It's not moving!" next
 	"@Hey!  Why don't you try pressing the button on the controller!" promptw
 	window_closeall
@@ -81,6 +83,7 @@ l_0xc886f9:
 
 l_0xc88739:
 	call(data_36.l_0xc7dd74)
+	cc_open_letterbox
 	sound(SND_POSSESSED)	// 96
 	music(155)
 	set(FLG_SYS_MONSTER_OFF)	// 11
@@ -88,7 +91,7 @@ l_0xc88739:
 	npc_do_mc(532,7)	// 0x0214, 0x0007
 	npc_do_mc(533,7)	// 0x0215, 0x0007
 	pause(120)
-	goto(data_46.l_0xc8eb75)
+	goto(data_46.l_0xc8eb75)	// Letterbox closes in data_46
 
 l_0xc88761:
 	sprite2_spawn(308,593,1)	// 0x0134, 0x0251, 0x01
@@ -97,6 +100,7 @@ l_0xc88761:
 	eob
 
 l_0xc88772:
+	cc_open_letterbox
 	window_closeall
 	music(44)
 	set(FLG_SYS_MONSTER_OFF)	// 11
@@ -105,6 +109,7 @@ l_0xc88772:
 	hide_party	// 0xFF, 0x06
 	sprite2_spawn(308,322,-1)	// 0x0134, 0x0142, 0xFF
 	sprite2_spawn(308,323,-1)	// 0x0134, 0x0143, 0xFF
+	sprite2_spawn(381,896,0xFF)	// Prepare letterbox for after the warp
 	warp(95)	// 0x5F
 	party_freeze	// 0xFF
 	pause(120) pause(120)
@@ -112,11 +117,13 @@ l_0xc88772:
 	sprite2_spawn(308,324,-1)	// 0x0134, 0x0144, 0xFF
 	sprite2_spawn(308,325,-1)	// 0x0134, 0x0145, 0xFF
 	sprite2_spawn(308,326,-1)	// 0x0134, 0x0146, 0xFF
+	sprite2_spawn(381,896,0xFF)	// Prepare letterbox for after the warp
 	warp(96)	// 0x60
 	party_freeze	// 0xFF
 	npc_delete(536,6)	// 0x0218, 0x06
 	pause(30) pause(30)
 	pause(120)
+	sprite2_spawn(381,896,0xFF)	// Prepare letterbox for after the warp
 	warp(97)	// 0x61
 	party_freeze	// 0xFF
 	pause(1)
@@ -133,6 +140,7 @@ l_0xc88772:
 	sprite2_spawn(308,332,-1)	// 0x0134, 0x014C, 0xFF
 	sprite2_spawn(364,333,-1)	// 0x016C, 0x014D, 0xFF
 	sprite2_spawn(308,334,-1)	// 0x0134, 0x014E, 0xFF
+	sprite2_spawn(381,896,0xFF)	// Prepare letterbox for after the warp
 	warp(98)	// 0x62
 	party_freeze	// 0xFF
 	pause(120) pause(120)
@@ -182,6 +190,7 @@ l_0xc888af:
 	eob
 
 l_0xc888c0:
+	cc_open_letterbox
 	unset(FLG_BGM_BUS)	// 534
 	music_resume
 	sprite2_spawn(351,454,1)	// 0x015F, 0x01C6, 0x01
@@ -211,6 +220,7 @@ l_0xc888c0:
 	unset(FLG_SYS_MONSTER_OFF)	// 11
 	sprite2_spawn(441,778,1)	// 0x01B9, 0x030A, 0x01
 	set(FLG_STEP_DSRT)	// 370
+	cc_close_letterbox
 	eob
 
 l_0xc8897f:
@@ -395,6 +405,7 @@ l_0xc88b6d:
 	eob
 
 l_0xc88d91:
+	cc_open_letterbox
 	party_freeze	// 0xFF
 	music_effect(3)	// Fade out
 	window_closeall
@@ -416,6 +427,7 @@ l_0xc88d91:
 	sprite2_spawn(150,384,1)	// 0x0096, 0x0180, 0x01
 	pause(1)
 	focus_camera_on_sprite2(106)	// 0x006A
+	cc_close_letterbox	// Closing it here so the full Runaway bros stage is visible
 	eob
 
 l_0xc88e0a:
@@ -478,6 +490,9 @@ l_0xc88e0a:
 	pause(30)
 	sprite2_spawn(106,400,1)	// 0x006A, 0x0190, 0x01
 	music_resume
+	// Uncomment this line if we want the letterbox present throughout all the Runaway show
+	// Comment the one above
+	//cc_close_letterbox
 	eob
 
 l_0xc88efe:

@@ -8,6 +8,7 @@ import "../definitions/flags.ccs"
 import "../definitions/items.ccs"
 import "../essential/asm65816.ccs"
 import "../essential/ASMRef.ccs"
+import "../essential/cc_effects.ccs"
 import "../essential/commands.ccs"
 import "../essential/stdext.ccs"
 import "../redux/keyitems.ccs"
@@ -21,6 +22,7 @@ l_0xc94b32:
 	"  Let's go!" pause(20) linebreak
 	"  Get on the bus!" wait
 	npc_do_mc(373,181)	// 0175, 00B5
+	cc_close_letterbox
 	eob
 
 l_0xc94b57:
@@ -68,7 +70,7 @@ l_0xc94d7a:
 	goto_if_flag(FLG_WIN_GEPPU, l_0xc94df6)	// 0x47, 71
 	"@I got bit by zombies in Threek,| the next town over,| so I'm stuck in this hospital." next
 	"@I left something good at the Threek Hospital," next
-	"@but now I can't go get it" pause(10)" because the bus can't get through the tunnel." end
+	"@but now I can't go get it// because the bus can't get through the tunnel." end
 
 l_0xc94df6:
 	"@I'm in perfect, tip-top health now." pause(20)
@@ -402,7 +404,6 @@ l_0xc959a5:
 
 l_0xc959db:
 	goto_if_flag(FLG_TWSN_FIELD_TONZ_DISAPPEAR, l_0xc95ba0)	// 0x0225, 549
-	goto(l_0xc959e2)
 
 l_0xc959e2:
 	title(1, Poochyfud)
@@ -411,8 +412,9 @@ l_0xc959e2:
 	"@They'll stay here until they pay me back." next
 	"@They might be here for 100 years," next
 	"@unless you decide to pay off their debt...  Heh, heh, heh." end
-	//if flag FLG_KEY_ITEMS and flag FLG_TWSN_ITEM_TONCHIKI { // flg_KeyItem_WadofBills
-		//goto(chaostheatermanager_paid) }
+	/*if flag FLG_KEY_ITEMS and flag FLG_TWSN_ITEM_TONCHIKI { // flg_KeyItem_WadofBills
+		goto(chaostheatermanager_paid)
+	}*/
 
 l_0xc95a5f:
 	"@The Runaway Brothers are free to leave." next
@@ -428,6 +430,11 @@ l_0xc95a8d:
 l_0xc95aa0:
 	isset(FLG_TWSN_CHAOS_STAGE_START)	// 319
 	goto_if_false(l_0xc95ba0)
+
+	window_closeall	// Close menus
+	cc_open_letterbox
+	window_open(1)
+
 	get_char_at_pos(1)
 	get_dir_from_char(0,TO_NPC,253)	// 0, 2, 0x00FD
 	swap
@@ -443,7 +450,6 @@ l_0xc95aa0:
 	load_registers
 	result_is(8)
 	goto_if_true(l_0xc95b64)
-	goto(chaostheatermanager_paid)
 
 chaostheatermanager_paid:
 	sound(SND_CHICKEN2)	// 118
@@ -461,7 +467,7 @@ chaostheatermanager_paid:
 	set(FLG_TWSN_TONZURA_FREE)	// 119
 	set(FLG_TWSN_TONZURABUS_APPEAR)	// 309
 	unset(FLG_TWSN_TONCHIKI_APPEAR)	// 624
-	goto(data_34.l_0xc799d7)
+	goto(data_34.l_0xc799d7)	// Close letterbox goes in data_34
 
 l_0xc95b63:
 	eob
@@ -470,7 +476,9 @@ l_0xc95b64:
 	title(1, Poochyfud)
 	"@W-what is that?!" pause(15) linebreak
 	 "  Let me see it closer up!" linebreak
-	"  Right/ by/ my/ face/!" end
+	"  Right/ by/ my/ face/!" wait
+	cc_close_letterbox
+	eob
 
 l_0xc95ba0:
 	title(1, Poochyfud)
@@ -481,6 +489,7 @@ l_0xc95ba0:
 	"@I've got definite rules about how I handle my money matters..." end
 
 l_0xc95c0e:
+	//cc_open_letterbox	// Done in data_34.l_0xc7b4fb
 	goto_if_flag(FLG_TWSN_ITEM_TONCHIKI, l_0xc960d7)	// 0x0055, 85
 	goto_if_flag(FLG_POLA, l_0xc95f0a)	// 0x000C, 12
 	goto_if_flag(FLG_POLA_GRFD, l_0xc95df9)	// 0x000D, 13
@@ -492,6 +501,7 @@ l_0xc95c0e:
 	call(data_23.l_0xc6846b)
 	goto_if_true(data_23.l_0xc683de)
 
+	cc_instant_letterbox
 	window_open(1)
 	"@Yes, I'm Everdred, boss of Burglin Park." next
 	title(1, Everdred)
@@ -507,9 +517,11 @@ l_0xc95c0e:
 	"  so hurry and go there." next
 
 l_0xc95dc6:
-	"@If you save {name(2)},| be sure to come back here, okay?" pause(15)
+	"@If you save {name(2)},| be sure to come back here, okay?" linebreak
+	pause(15)
 	"  Don't/| forget!" wait
 	window_closeall
+	//cc_close_letterbox	// Done in data_34.l_0xc7b4fb
 	set(FLG_TWSN_WIN_TONCHIKI)	// 66
 	eob
 
@@ -527,7 +539,9 @@ l_0xc95df9:
 	"  They're really worried." next
 	"@I also have something to give you,| so be sure to come back here." next
 	"@Promise?" pause(20)
-	"  All right." end
+	"  All right." wait
+	cc_close_letterbox
+	eob
 
 l_0xc95e73:
 	title(1, Everdred)
@@ -543,6 +557,7 @@ l_0xc95ea5:
 	"@Come back when you've accomplished something." end
 
 l_0xc95f0a:
+	cc_open_letterbox
 	counter(1)
 	call(data_36.l_0xc7dc7f)
 	goto_if_true(l_0xc960ab)
@@ -560,7 +575,8 @@ l_0xc95f0a:
 	"  Just give it up and take it!" next
 	"@Now I plan on looking for the evil Mani Mani Statue or whatever" next
 	"@that some petty bad guy named Lier X. Agerate or something dug up in Onett." next
-	"@I'll see you at another time, in another space." promptw
+	"@I'll see you at another time," linebreak
+	"  in another space." promptw
 
 	if flag FLG_KEY_ITEMS { give_menu_key_item(WAD_BILLS) }
 	else {
@@ -569,9 +585,10 @@ l_0xc95f0a:
 		give_and_return_location(0, WAD_BILLS)
 		call(data_36.l_0xc7dcb6)
 	}
-
+	wait
+	cc_close_letterbox	// Already handled by Everdred's control code
 	set(FLG_TWSN_ITEM_TONCHIKI)	// 85
-	end
+	eob
 
 l_0xc9605d:
 	pause(60) linebreak
@@ -581,12 +598,16 @@ l_0xc9605d:
 
 	"@Your backpack is filled with junk." pause(20)
 	"  Get rid of something!" next
-	"@I'll put the money in a safe place until you get back." end
+	"@I'll put the money in a safe place until you get back." wait
+	cc_close_letterbox
+	eob
 
 l_0xc960ab:
 	title(1, Everdred)
 	"@I need to talk to {name(1)}." next
-	"@Even if you're his friend,| I won't talk to you." end
+	"@Even if you're his friend,| I won't talk to you." wait
+	cc_close_letterbox
+	eob
 
 l_0xc960d7:
 	counter(1)
@@ -596,7 +617,9 @@ l_0xc960d7:
 	title(1, Everdred)
 	"@Please use the 10,000 dollars any way you wish." next
 	"@There's no use in trying to give it back to me!" pause(20) linebreak
-	"  Just give it up and take it!" end
+	"  Just give it up and take it!" wait
+	//cc_close_letterbox	// Not needed
+	eob
 
 l_0xc96124:
 	goto_if_flag(FLG_WIN_GIEGU, l_0xc96267)	// 0x0049, 73
